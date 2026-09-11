@@ -1,0 +1,23 @@
+# starlette is pinned explicitly rather than left to fastapi's floor: fastapi
+# 0.128.8 resolved to starlette 0.52.1, which carries seven advisories
+# including a Host-header path-desync bug. fastapi<0.133.0 cannot accept a
+# patched starlette at all (pip reports ResolutionImpossible), so the fastapi
+# bump here is a prerequisite for the starlette fix, not an unrelated upgrade.
+# starlette is pinned exactly (not >=), matching this file's convention, so a
+# future starlette release only reaches production via a deliberate, verified
+# bump here rather than silently through nixpacks' unlocked build-time install.
+fastapi==0.136.3
+starlette==1.3.1
+pydantic==2.13.4
+uvicorn[standard]==0.39.0
+httpx==0.28.1
+apscheduler==3.11.3
+google-auth==2.29.0
+google-auth-oauthlib==1.3.1
+google-api-python-client==2.198.0
+python-dotenv==1.2.2
+pytz==2024.1
+anthropic==0.118.0
+psycopg2-binary==2.9.12
+boto3==1.42.97
+cryptography==50.0.0

@@ -1,0 +1,36 @@
+# Private environment and credentials
+.env*
+!.env.example
+service_account.json
+client_secret.json
+calendar_token.json
+role-seeds.json
+simplefin_*.json
+*.pem
+*.key
+
+# Private local guidance, archives and audit evidence
+.claude/
+.agents/
+.impeccable/
+/AGENTS.md
+.readiness-audit/
+.superpowers/
+*.docx
+*.dump
+*.dump.enc
+*.bundle
+
+# Databases and generated files
+*.db
+*.sqlite*
+venv/
+.venv/
+node_modules/
+frontend/dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.log
+.DS_Store

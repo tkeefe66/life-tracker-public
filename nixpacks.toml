@@ -1,0 +1,26 @@
+providers = ["python"]
+
+# PostgreSQL client 18 supports the deployed database major version.
+# Use the official PGDG repository rather than the older Nix package.
+
+[phases.setup]
+nixPkgs = ["python311", "gcc", "nodejs_22"]
+aptPkgs = ["curl", "ca-certificates"]
+
+# Separate phase rather than overriding setup's cmds, which would replace the
+# nix installation nixpacks generates there.
+[phases.pgclient]
+dependsOn = ["setup"]
+cmds = [
+  "install -d /etc/apt/keyrings",
+  # Armored key referenced directly by signed-by — apt >= 2.4 accepts .asc, so
+  # no gnupg dependency is needed just to dearmor it.
+  "curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /etc/apt/keyrings/pgdg.asc",
+  "echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' > /etc/apt/sources.list.d/pgdg.list",
+  "apt-get update",
+  "apt-get install -y --no-install-recommends postgresql-client-18",
+]
+
+[phases.build]
+dependsOn = ["install", "pgclient"]
+cmds = ["cd frontend && npm ci && npm run build"]

@@ -1,0 +1,1264 @@
+/* ─── On Track · calm ledger design system ───────────────────────────
+   One accent (indigo) for action + completion. Amber for over-target.
+   That's the whole emotional range. Both themes are first-class. */
+
+:root {
+  --bg: oklch(97.3% 0.004 277);
+  --surface: oklch(100% 0 0);
+  --surface-2: oklch(98.6% 0.003 277);
+  --ink: oklch(22% 0.012 277);
+  --ink-2: oklch(42% 0.016 277);
+  --muted: oklch(50% 0.018 277);
+  --line: oklch(90.5% 0.006 277);
+  --accent: oklch(50% 0.185 277);
+  --accent-ink: oklch(99% 0.005 277);
+  --accent-soft: oklch(50% 0.185 277 / 0.09);
+  --over: oklch(56% 0.135 60);
+  --over-soft: oklch(56% 0.135 60 / 0.14);
+  --danger: oklch(52% 0.19 27);
+  --chart-hit: oklch(50% 0.185 277);
+  --chart-over: oklch(56% 0.135 60);
+  --chart-zero: var(--line);
+  --chart-delivery: oklch(50% 0.185 277);
+  --chart-rides: oklch(56% 0.135 60);
+  --chart-social: oklch(55% 0.11 175);
+  /* dates (gold): validated 2026-08-02 with the dataviz six-checks script
+     against delivery/rides/social on both surfaces — all PASS (CVD worst
+     adjacent ΔE 11.3, normal 16.8, contrast ≥3:1). Yellow chosen because
+     yellow-vs-teal survives red-green CVD where pink/magenta collapsed. */
+  --chart-dates: oklch(48% 0.145 90);
+  /* alias of --chart-delivery's validated values -- see spec §7. Do not
+     substitute a new hue without running the six-check validation against
+     both surfaces. */
+  --chart-bank: oklch(50% 0.185 277);
+  --shadow-item: 0 1px 2px oklch(25% 0.02 277 / 0.05), 0 6px 20px -12px oklch(25% 0.02 277 / 0.1);
+  --r: 12px;
+  --dur: 160ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* One pill primitive for every interactive pill on the Money screen
+     (vendor-chip, vendor-label-btn, vendor-bulk-offer, audit-btn, the
+     triage choice chips, suggest-badge) — same radius, type size, and
+     border weight everywhere. --pill-pad-compact is the one deliberate
+     size exception: pills that sit inline next to text (a label
+     placeholder, an inline suggestion count) rather than standing alone
+     as a tap target. Distinctions that matter (selected vs unselected,
+     primary vs quiet, suggested vs confirmed) are carried by color only. */
+  --pill-pad: 4px 12px;
+  --pill-pad-compact: 1px 8px;
+  --pill-radius: 999px;
+  --pill-fs: 0.8rem;
+  --pill-border: 1px solid var(--line);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(19% 0.01 277);
+    --surface: oklch(23.5% 0.012 277);
+    --surface-2: oklch(21.5% 0.011 277);
+    --ink: oklch(93% 0.006 277);
+    --ink-2: oklch(76% 0.012 277);
+    --muted: oklch(66% 0.014 277);
+    --line: oklch(30.5% 0.014 277);
+    --accent: oklch(67% 0.155 277);
+    --accent-ink: oklch(17% 0.05 277);
+    --accent-soft: oklch(67% 0.155 277 / 0.14);
+    --over: oklch(73% 0.125 65);
+    --over-soft: oklch(73% 0.125 65 / 0.16);
+    --danger: oklch(68% 0.17 25);
+    --shadow-item: 0 1px 2px oklch(0% 0 0 / 0.35), 0 6px 20px -12px oklch(0% 0 0 / 0.5);
+    --chart-hit: oklch(63% 0.17 277);
+    --chart-over: oklch(62% 0.14 60);
+    --chart-delivery: oklch(63% 0.17 277);
+    --chart-rides: oklch(62% 0.14 60);
+    --chart-social: oklch(64% 0.10 175);
+    /* dates: dark's own validated step (CVD 11.0, normal 15.2, ≥3:1). */
+    --chart-dates: oklch(66% 0.12 90);
+    /* alias of --chart-delivery's validated values -- see spec §7. Do not
+       substitute a new hue without running the six-check validation against
+       both surfaces. */
+    --chart-bank: oklch(63% 0.17 277);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+html { height: 100%; }
+
+body {
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  font-size: 16px;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── App shell ─── */
+
+.app { display: flex; flex-direction: column; min-height: 100dvh; }
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 20px 96px;
+}
+
+.screen-head { margin-bottom: 20px; }
+.screen-head h2 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; }
+.screen-head .sub { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+.section-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 20px 4px 8px;
+}
+
+/* Marks the start of a distinct zone within a screen: extra separation plus
+   a hairline, so a coherent group of sections reads as its own rank below
+   whatever came before it. Not a card, not a new color — pure spacing +
+   one line. Combined with .section-label so its higher specificity wins
+   over the plain margin-top above without depending on rule order. */
+.zone-break.section-label {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.stack { display: flex; flex-direction: column; gap: 10px; }
+
+/* Screen-reader-only: visually invisible but present in the accessibility
+   tree and for heading navigation. Never use `display: none` for this —
+   that removes it from both. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Tab bar ─── */
+
+.tabs {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 6px 16px calc(8px + env(safe-area-inset-bottom));
+}
+
+.tabs button {
+  flex: 1;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  border: none;
+  background: none;
+  font-size: 0.7rem;
+  color: var(--muted);
+  border-radius: 8px;
+  transition: color var(--dur) var(--ease);
+}
+
+.tabs button svg { display: block; }
+.tabs button.active { color: var(--accent); font-weight: 600; }
+
+/* ─── Item rows (check-ins) ─── */
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-item);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+button.item:active { transform: scale(0.985); }
+
+.item .dot {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1.5px solid var(--line);
+  color: var(--accent-ink);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.item.done { border-color: color-mix(in oklch, var(--accent) 35%, var(--line)); }
+.item.done .dot { background: var(--accent); border-color: var(--accent); animation: settle 200ms var(--ease); }
+
+@keyframes settle {
+  0% { transform: scale(0.6); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.item .txt { flex: 1; min-width: 0; }
+.item .t { font-size: 0.95rem; font-weight: 500; display: block; }
+.item .s { font-size: 0.8rem; color: var(--muted); display: block; }
+
+/* Alcohol level chips */
+
+.chips { display: flex; gap: 6px; }
+
+.chips button {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.chips button:active { transform: scale(0.92); background: var(--accent-soft); }
+
+/* Quiet text rows — shared by Settings' "Detected orders" list, Money,
+   VendorBreakdown, Investments, Insights and TriageQueue's inline bulk-apply
+   button. NOT Today's Day log rows below, which have their own class family
+   (day-log-*) now that "Noticed quietly" has been replaced. */
+
+.quiet {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 6px;
+  font-size: 0.9rem;
+  color: var(--ink-2);
+}
+
+.quiet + .quiet { border-top: 1px solid var(--line); }
+.quiet .when { margin-left: auto; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.quiet.empty { color: var(--muted); font-size: 0.85rem; }
+
+button.quiet-btn {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+button.quiet-btn:hover,
+button.quiet-btn:active { background: var(--accent-soft); }
+
+/* Chevron affordance — these rows look like static text otherwise. Sits as
+   the last flex child, right after .when (which already carries the
+   margin-left: auto that pins both to the row's right edge). */
+button.quiet-btn::after {
+  content: "›";
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ─── Day log (spec: 2026-07-30-day-log-redesign-design) ───
+   One chronological feed replaces the old "Noticed quietly" grouped-by-kind
+   rows (§1). Row anatomy (§6): [icon] name … time · $amount [chip] ›. */
+
+.day-log-entry + .day-log-entry,
+.day-log-entry + .day-log-row,
+.day-log-row + .day-log-entry,
+.day-log-row + .day-log-row {
+  border-top: 1px solid var(--line);
+}
+
+.day-log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px;
+  font-size: 0.9rem;
+  color: var(--ink-2);
+  border-radius: 8px;
+  transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+[role="button"].day-log-row { cursor: pointer; }
+[role="button"].day-log-row:hover,
+[role="button"].day-log-row:active { background: var(--accent-soft); }
+[role="button"].day-log-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Filtered-out rows dim, they never unmount (§2) — the day's shape stays
+   visible even while narrowed to one category. */
+.day-log-row.dim { opacity: 0.35; }
+
+.day-log-row.removed { color: var(--muted); }
+.day-log-row.removed .day-log-name { text-decoration: line-through; }
+
+.category-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.day-log-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-log-meta {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Chevron affordance for interactive rows only — a row with nothing to tap
+   (a delivery, a check-in) never shows one. */
+.day-log-chev {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.day-log-empty { color: var(--muted); font-size: 0.85rem; padding: 8px 6px; }
+
+/* The confident "social" chip has no meta before it to lean on (unlike the
+   question/removed groups, which carry their own margin-left: auto) — pin it
+   to the row's right edge directly so a meta-less row still right-aligns. */
+.day-log-row > .chip { margin-left: auto; }
+
+/* Status chips: the tiny, fixed vocabulary (§4/§7) — `social`, inline
+   `social? Yes/No`, `Removed · Undo`. The "social" chip reuses .chip/
+   .chip-accent (WeekDays' info-tag signature) rather than inventing a new
+   tone. Rendered *inside* the row (§7 — the bug this fixes: the chip used
+   to float on its own detached line). */
+.chip-question-group,
+.chip-removed-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.chip-question { background: var(--accent-soft); color: var(--accent); }
+
+.chip-question-group button {
+  border: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--pill-radius);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.chip-question-group button:hover,
+.chip-question-group button:active {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.chip-removed-group .undo-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.chip-removed-group .undo-btn:hover,
+.chip-removed-group .undo-btn:active {
+  text-decoration: underline;
+}
+
+/* ─── Filter strip (§2) ─── */
+.filter-strip {
+  display: flex;
+  gap: 6px;
+  margin: 2px 2px 8px;
+}
+.filter-chip {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.filter-chip.on { background: var(--accent-soft); border-color: var(--accent); }
+
+/* ── Social event add/edit inline forms ── */
+/* Dates panel on Insights (2026-07-30 date-tracking spec §6): unscored
+   series — stat row, per-week mini bars (no target line), top places.
+   Single-series bar in the UI accent, not a --chart-* token: no pairing
+   whose colorblind separation would need re-validating. */
+.dates-panel { display: flex; flex-direction: column; gap: 12px; }
+.dates-stats { display: flex; gap: 16px; font-size: 0.85rem; color: var(--ink-2); }
+.dates-stats strong { color: var(--ink); font-size: 1rem; }
+.dates-bars { width: 100%; height: auto; }
+.dates-bar { fill: var(--accent); }
+.dates-places { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dates-places li { display: flex; justify-content: space-between; gap: 12px; font-size: 0.85rem; }
+.dates-places .muted { color: var(--muted); white-space: nowrap; }
+
+/* Inline action strip under a delivery/ride Day log row (move-day nudge,
+   ride work toggle). Sibling of .social-form's expand-under-the-row pattern;
+   indented past the category icon so it reads as belonging to its row. */
+.day-log-actions {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 8px 40px;
+}
+.day-log-actions button {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.day-log-actions button:hover,
+.day-log-actions button:active { background: var(--accent-soft); }
+
+.social-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  margin: 6px 0 10px;
+}
+
+.social-form input[type="text"] {
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.social-form .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.social-form .row-actions { display: flex; gap: 8px; margin-top: 2px; }
+.social-form .row-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.social-form .row-actions button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.social-form .row-actions button.danger {
+  color: var(--danger);
+  border-color: color-mix(in oklch, var(--danger) 40%, var(--line));
+}
+
+.add-social-btn {
+  width: 100%;
+  padding: 10px 14px;
+  margin-top: 4px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r);
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ─── Meters (week progress) ─── */
+
+.meter {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 300ms var(--ease);
+}
+
+.meter.over i { background: var(--over); }
+
+.week-strip { display: flex; gap: 10px; padding: 4px 2px; }
+
+.week-strip > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.week-strip .wl {
+  font-size: 0.7rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ─── Ledger strip (Week tab, compact) ─── */
+
+.ledger-strip {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-item);
+  padding: 16px 8px;
+  margin-bottom: 18px;
+}
+
+.ledger-tile {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ledger-count {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.ledger-count.over { color: var(--over); }
+
+.ledger-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.footnote {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 14px;
+  padding: 0 4px;
+  max-width: 60ch;
+}
+
+/* ─── Spend subtotals (Today + Week) ─── */
+
+.spend {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-item);
+  padding: 4px 16px;
+}
+
+.spend-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 0.9rem;
+}
+.spend-row + .spend-row { border-top: 1px solid var(--line); }
+
+.spend-service { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.spend-amount { color: var(--ink); }
+
+/* ─── Vendor breakdown ("Where it went") ───
+   .vendor-chip{,-row,-on} are deliberately distinct from the pre-existing
+   .chip/.chip-accent/.chip-over (WeekDays' non-interactive day tags) — those
+   are fixed-tone info pills, not a toggleable filter group, and redefining
+   .chip here would change their look everywhere they're used. Every pill
+   below draws its shape from the --pill-* primitive (see :root). */
+.vendor-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.vendor-chip {
+  padding: var(--pill-pad); border-radius: var(--pill-radius);
+  border: var(--pill-border); background: transparent;
+  color: var(--muted); font-size: var(--pill-fs); cursor: pointer;
+}
+.vendor-chip-on { border-color: var(--ink); color: var(--ink); }
+.vendor-row {
+  display: flex; justify-content: space-between; width: 100%;
+  padding: 6px 0; background: none; border: none;
+  color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.vendor-drill { padding: 0 0 6px 12px; }
+.vendor-drill-row {
+  display: flex; justify-content: space-between;
+  padding: 2px 0; color: var(--ink-2); font-size: 0.9rem;
+}
+.vendor-drill-right { display: flex; align-items: center; gap: 6px; }
+/* Compact padding (inline, next to a date/note in a dense row) but the same
+   radius, type size, and dashed-border "not yet confirmed" cue throughout. */
+.vendor-label-btn {
+  padding: var(--pill-pad-compact); border-radius: var(--pill-radius); border: 1px dashed var(--line);
+  background: none; color: var(--muted); font-size: var(--pill-fs); cursor: pointer;
+}
+.vendor-label-input {
+  font: inherit; font-size: 0.8rem; color: var(--ink);
+  background: none; border: 1px solid var(--line); border-radius: 6px;
+  padding: 1px 6px; max-width: 10rem;
+}
+/* Suggested-label signature: the same accent-soft fill + accent text every
+   "suggested" affordance on Money uses (suggest-badge below, triage's
+   chip-suggested) — no italic, no separate muted treatment, one encoding. */
+.vendor-label-suggested { background: var(--accent-soft); color: var(--accent); }
+.vendor-bulk-offer {
+  display: block; margin: 2px 0 6px 12px; padding: var(--pill-pad);
+  border: var(--pill-border); border-radius: var(--pill-radius); background: none;
+  color: var(--ink); font-size: var(--pill-fs); cursor: pointer;
+}
+
+.spend-total { font-weight: 600; color: var(--ink); }
+
+/* ─── Settings groups ─── */
+
+.group {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-item);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 0.92rem;
+}
+
+.row + .row { border-top: 1px solid var(--line); }
+.row .grow { flex: 1; min-width: 0; }
+.row .hint { display: block; font-size: 0.78rem; color: var(--muted); }
+
+.field-num {
+  width: 60px;
+  padding: 8px 4px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.nickname-input { max-width: 9rem; }
+
+.row select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+}
+
+/* Switch */
+
+.switch {
+  position: relative;
+  width: 46px; height: 28px;
+  flex-shrink: 0;
+}
+.switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.switch .knob {
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background var(--dur) var(--ease);
+}
+.switch .knob::after {
+  content: "";
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.25);
+  transition: transform var(--dur) var(--ease);
+}
+.switch input:checked + .knob { background: var(--accent); }
+.switch input:checked + .knob::after { transform: translateX(18px); }
+.switch input:focus-visible + .knob { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Login ─── */
+
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 300px;
+  margin: 0 auto;
+  padding: 28dvh 20px 0;
+}
+
+.login .wordmark {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.login .wordmark::before {
+  content: "";
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.login input {
+  padding: 13px 14px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.login input::placeholder { color: var(--muted); }
+
+.login button {
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease);
+}
+.login button:active { transform: scale(0.98); }
+
+/* ─── States & feedback ─── */
+
+.center { text-align: center; margin-top: 38dvh; color: var(--muted); }
+.center button {
+  margin-top: 12px;
+  padding: 10px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.error { color: var(--danger); font-size: 0.88rem; margin: 8px 4px; }
+
+.banner {
+  background: var(--over-soft);
+  border: 1px solid color-mix(in oklch, var(--over) 40%, var(--line));
+  color: var(--ink);
+  font-size: 0.85rem;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  margin-bottom: 14px;
+}
+.banner code { font-size: 0.8em; }
+
+.muted { color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Day/week navigation header ── */
+.navhead { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.navhead .nav-label { flex: 1; text-align: center; }
+.navhead .nav-label h2 { margin: 0; }
+.navhead .nav-label .sub { margin: 2px 0 0; }
+.nav-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.nav-btn:disabled { opacity: 0.3; cursor: default; }
+.navhead.past .nav-label {
+  background: var(--accent-soft); border-radius: 10px; padding: 4px 8px;
+}
+
+/* ── Trends ── */
+.trends { display: grid; gap: 18px; }
+.trend-row {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px 8px;
+}
+.trend-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.trend-row .trend-name { font-size: 13px; color: var(--ink-2); }
+.trend-row .trend-current { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.trend-row .trend-current .num { font-variant-numeric: tabular-nums; }
+.trend-caption { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.trend-empty { font-size: 13px; color: var(--muted); padding: 4px 0 8px; }
+.trend { width: 100%; height: auto; display: block; }
+.trend-bar.hit { fill: var(--chart-hit); }
+.trend-bar.over { fill: var(--chart-over); }
+.trend-bar.zero { fill: var(--chart-zero); }
+.trend-target { stroke: var(--muted); stroke-width: 1; }
+.trend-target-label {
+  font-size: 9px; fill: var(--muted);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+.trend-axis { font-size: 9px; fill: var(--muted); }
+.trend-value {
+  font-size: 10px; fill: var(--ink-2); font-weight: 600;
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+.trend-hit { fill: transparent; cursor: pointer; }
+.trend-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ── Spend chart (Insights · Money) — never a fixed pixel height, mirrors .trend ── */
+.spend-chart { width: 100%; height: auto; display: block; }
+.spend-seg-delivery { fill: var(--chart-delivery); }
+.spend-seg-rides { fill: var(--chart-rides); }
+.spend-seg-social { fill: var(--chart-social); }
+.spend-seg-dates { fill: var(--chart-dates); }
+.spend-seg-bank { fill: var(--chart-bank); }
+.spend-baseline { stroke: var(--line); stroke-width: 1; }
+.spend-axis { font-size: 9px; fill: var(--muted); }
+.spend-hit { fill: transparent; cursor: pointer; }
+.spend-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* The final bar is the current, still-accumulating week — same hues, just
+   lighter, plus a dashed top edge so it doesn't read as a spending decline. */
+.spend-seg-current { opacity: 0.55; }
+.spend-seg-current-edge {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 1.5;
+}
+
+/* ── Insights: Money view ── */
+.money-hero {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 4px 4px 0;
+}
+.money-hero-sub { font-size: 0.8rem; color: var(--muted); margin: 2px 4px 18px; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 4px 16px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--ink-2); }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── Numbers table ── */
+details.numbers {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-top: 14px;
+}
+details.numbers summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.numbers-scroll { overflow-x: auto; margin-top: 10px; }
+.numbers-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.numbers-table th, .numbers-table td { padding: 6px 10px; text-align: right; }
+.numbers-table th:first-child, .numbers-table td:first-child { text-align: left; }
+.numbers-table th { color: var(--muted); font-weight: 500; }
+.numbers-table td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.numbers-table tbody tr + tr { border-top: 1px solid var(--line); }
+
+/* ── Weekday heatmap ── */
+.heatmap { display: grid; gap: 6px; }
+.hm-row { display: grid; grid-template-columns: minmax(72px, 1fr) repeat(7, 28px); gap: 6px; align-items: center; }
+.hm-day { font-size: 11px; color: var(--muted); text-align: center; }
+.hm-label { font-size: 13px; color: var(--ink-2); }
+.hm-max { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.hm-cell {
+  height: 28px; border-radius: 6px; border: 0; padding: 0; margin: 0;
+  cursor: pointer; font: inherit;
+}
+.hm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hm-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.hm-legend-word { font-size: 11px; color: var(--muted); }
+.hm-swatch { width: 16px; height: 16px; border-radius: 4px; }
+.hm-caption { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* ── Reflection ── */
+.reflection {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2);
+}
+
+/* ── Tap-to-pick date navigation ── */
+.nav-label { position: relative; }
+.nav-label h2 {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 4px;
+}
+.nav-pick {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ── Detected orders (Settings) ── */
+details.orders {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+details.orders summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+details.orders .quiet { margin: 10px 0 0; }
+
+/* ── Week day rows (Week tab day-by-day view) ── */
+.weekdays {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-item);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.day-row + .day-row { border-top: 1px solid var(--line); }
+
+.day-row-head { display: flex; align-items: stretch; }
+
+.day-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 58px;
+  min-height: 44px;
+  padding: 10px 6px;
+  border: none;
+  background: none;
+  flex-shrink: 0;
+}
+
+.day-date .day-weekday {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: underline dotted;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 4px;
+}
+
+.day-date .day-monthday { font-size: 0.72rem; color: var(--muted); }
+
+.day-expand {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px 10px 2px;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.day-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.day-empty { flex: 1; font-size: 0.85rem; }
+
+.chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip-accent { background: var(--accent-soft); color: var(--accent); }
+.chip-over { background: var(--over-soft); color: var(--over); }
+
+.day-cost { font-size: 0.85rem; color: var(--ink-2); white-space: nowrap; flex-shrink: 0; }
+
+.day-chevron {
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform var(--dur) var(--ease);
+}
+.day-chevron.open { transform: rotate(180deg); }
+
+.day-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 16px 14px 66px;
+}
+
+.day-panel-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.day-panel-tag { font-size: 0.8em; }
+.day-panel-amount { color: var(--ink); white-space: nowrap; }
+.day-panel-empty { font-size: 0.85rem; padding: 2px 0; }
+
+.day-panel-link {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.day-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-weight: 600;
+  background: var(--surface-2);
+}
+
+/* ── Bank triage queue (Money screen) ── */
+
+.triage-queue {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-item);
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.triage-queue h3 { font-size: 1rem; margin-bottom: 2px; }
+.triage-prompt { font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+
+.triage-list { list-style: none; }
+.triage-row { padding: 12px 0; }
+.triage-row + .triage-row { border-top: 1px solid var(--line); }
+
+.triage-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+.triage-detail { flex: 1; min-width: 0; }
+.triage-label { display: block; font-size: 0.9rem; }
+.triage-note { display: block; font-size: 0.78rem; color: var(--muted); }
+.triage-meta { display: block; font-size: 0.78rem; }
+.triage-hint { display: block; font-size: 0.78rem; color: var(--muted); }
+.triage-amount { color: var(--ink); white-space: nowrap; }
+
+/* "Add note" toggle — quiet-btn's coloring/interaction at inline, meta-line
+   scale (quiet-btn itself is a full-width block, wrong shape here). */
+.triage-note-toggle {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  padding: 0;
+  margin-left: 6px;
+}
+.triage-note-toggle:active { color: var(--ink-2); }
+
+.triage-note-input {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* The choice buttons reuse .chips button's colors and interaction states —
+   sizing and shape move onto the shared --pill-* primitive, since that base
+   treatment was built for single-digit alcohol-level chips (square, 10px
+   radius) and these carry multi-word labels and need a real pill shape to
+   match every other tappable pill on this screen. The larger padding stays:
+   these are the primary decision affordance in the queue, not a filter
+   toggle, and deserve the bigger touch target. */
+.triage-queue .chips { flex-wrap: wrap; }
+.triage-queue .chips button {
+  width: auto; height: auto; padding: 8px 12px;
+  border-radius: var(--pill-radius); font-size: var(--pill-fs); white-space: nowrap;
+}
+
+/* The AI-suggested chip (spec §5) — same accent-soft + accent-text signature
+   as .suggest-badge and .vendor-label-suggested, never green/red: this is a
+   hint, not a verdict. */
+.triage-queue .chips button.chip-suggested {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Same settle pulse the Today check-ins use (spec §6.2) — the row itself is
+   removed by the parent, this just gives the tap a moment of feedback first. */
+.triage-row.settle { animation: settle 200ms var(--ease); }
+
+.triage-more { font-size: 0.78rem; color: var(--muted); margin: 4px 4px 18px; }
+
+/* ── Money screen: collapsed disclosures (tracked-category chart, recently
+   sorted) — same treatment as details.numbers / details.orders ── */
+details.money-details {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 14px 0 18px;
+}
+details.money-details summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+details.money-details .spend-chart,
+details.money-details .legend,
+details.money-details .trend-caption { margin-top: 10px; }
+
+/* zone-break variant for a details/summary disclosure rather than a plain
+   h2 (the decision zone now collapses behind one summary line, so the
+   hairline that used to sit above "Needs a decision" moves to sit above the
+   card itself). Only the top edge is overridden — background/border-radius/
+   right/bottom/left padding and the rest of the border still come from
+   details.money-details above, in both the closed and open state, so
+   nothing doubles when the user expands it. Higher specificity than the
+   plain rule (two classes vs one) wins without needing rule order or
+   !important. */
+.zone-break.money-details {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.recent-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.recent-row + .recent-row { border-top: 1px solid var(--line); }
+.recent-row button {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 0;
+}
+
+/* ── Label audit section (Suggested labels — needs a look) ──
+   Ground matches .triage-queue's --surface (it was the first of Money's two
+   decision-zone worklists) rather than the --surface-2 this used to sit on —
+   one card ground for both worklists. */
+.audit-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 10px 12px; margin-bottom: 10px;
+}
+.audit-head { display: flex; justify-content: space-between; font-size: 0.9rem; }
+.audit-meta { font-size: 0.78rem; color: var(--muted); margin: 2px 0 8px; }
+.audit-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.audit-btn {
+  font-size: var(--pill-fs); padding: var(--pill-pad); border-radius: var(--pill-radius);
+  border: var(--pill-border); background: none; color: var(--ink); cursor: pointer;
+}
+.audit-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.suggest-badge {
+  font-size: var(--pill-fs); padding: var(--pill-pad-compact); border-radius: var(--pill-radius);
+  background: var(--accent-soft); color: var(--accent); margin-left: 8px; white-space: nowrap;
+}
+
+/* Investments — gain/loss reuse validated theme-aware tokens (no new hues:
+   --chart-social up, --danger down; both were contrast-checked per theme). */
+.inv-total { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0 4px; font-weight: 600; }
+.inv-acct { margin-top: 10px; }
+.inv-acct-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 500; }
+.inv-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0 2px 10px; }
+.inv-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-nums, .inv-gain, .inv-loss { white-space: nowrap; }
+.inv-gain { color: var(--chart-social); }
+.inv-loss { color: var(--danger); }

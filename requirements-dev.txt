@@ -1,0 +1,6 @@
+# Dev/test tooling only — never installed into the production image.
+# nixpacks.toml's build phase runs `pip install -r requirements.txt`, not this file.
+pytest==8.4.2
+pytest-asyncio==1.2.0
+ruff==0.15.22
+pip-audit==2.10.1
