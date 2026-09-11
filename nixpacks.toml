@@ -4,6 +4,9 @@ providers = ["python"]
 # Use the official PGDG repository rather than the older Nix package.
 
 [phases.setup]
+# Stable NixOS 26.05 archive: nodejs_22 is 22.23.2, matching CI.
+# The Nixpacks default archive supplies 22.10, below Vite's minimum.
+nixpkgsArchive = "21a67dc470149f337cecafbe965d8d252a390518"
 nixPkgs = ["python311", "gcc", "nodejs_22"]
 aptPkgs = ["curl", "ca-certificates"]
 
