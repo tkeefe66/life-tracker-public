@@ -1213,16 +1213,18 @@ def test_bank_investments_not_configured_and_error_paths(temp_db_path, monkeypat
 
 
 # ── Day nudge (PATCH /deliveries/{id}, PATCH /rides/{id} day) ─────────────────
-# Seeds are relative to the real today (same convention as the future-date
-# checkin tests above): an order/ride at 01:00 today auto-buckets to
-# yesterday, so nudging it to today is valid and never a future date.
+# Freeze the app date so UTC runners and local hosts exercise identical
+# nudge and future-date boundaries, including across midnight.
 
 
-def test_patch_delivery_day_nudge(temp_db_path):
+def test_patch_delivery_day_nudge(temp_db_path, monkeypatch):
     client = _client(temp_db_path)
     import database as db
-    today = datetime.date.today().isoformat()
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    from app import routes
+    fixed_today = datetime.date(2026, 7, 15)
+    monkeypatch.setattr(routes, "_local_today", lambda: fixed_today)
+    today = fixed_today.isoformat()
+    yesterday = (fixed_today - datetime.timedelta(days=1)).isoformat()
     db.add_delivery_order("api-1", "Uber Eats", f"{today}T01:00:00-06:00", "Order", 15.0)
     row = db.get_delivery_orders_range(yesterday, yesterday)[0]
     r = client.patch(f"/api/deliveries/{row['id']}", json={"day": today})
@@ -1235,13 +1237,16 @@ def test_patch_delivery_day_nudge(temp_db_path):
     assert back["day"] == yesterday and back["user_date"] is None
 
 
-def test_patch_delivery_day_validation(temp_db_path):
+def test_patch_delivery_day_validation(temp_db_path, monkeypatch):
     client = _client(temp_db_path)
     import database as db
-    today = datetime.date.today().isoformat()
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-    three_back = (datetime.date.today() - datetime.timedelta(days=3)).isoformat()
-    tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+    from app import routes
+    fixed_today = datetime.date(2026, 7, 15)
+    monkeypatch.setattr(routes, "_local_today", lambda: fixed_today)
+    today = fixed_today.isoformat()
+    yesterday = (fixed_today - datetime.timedelta(days=1)).isoformat()
+    three_back = (fixed_today - datetime.timedelta(days=3)).isoformat()
+    tomorrow = (fixed_today + datetime.timedelta(days=1)).isoformat()
     db.add_delivery_order("api-2", "Uber Eats", f"{today}T01:00:00-06:00", "Order", 15.0)
     row = db.get_delivery_orders_range(yesterday, yesterday)[0]
     assert client.patch(f"/api/deliveries/{row['id']}", json={"day": three_back}).status_code == 400
@@ -1250,11 +1255,14 @@ def test_patch_delivery_day_validation(temp_db_path):
     assert client.patch("/api/deliveries/999999", json={"day": yesterday}).status_code == 404
 
 
-def test_patch_ride_day_and_work(temp_db_path):
+def test_patch_ride_day_and_work(temp_db_path, monkeypatch):
     client = _client(temp_db_path)
     import database as db
-    today = datetime.date.today().isoformat()
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    from app import routes
+    fixed_today = datetime.date(2026, 7, 15)
+    monkeypatch.setattr(routes, "_local_today", lambda: fixed_today)
+    today = fixed_today.isoformat()
+    yesterday = (fixed_today - datetime.timedelta(days=1)).isoformat()
     db.add_ride("api-r1", "Uber", f"{today}T02:34:00-06:00",
                 f"{today}T02:34:00", "Your trip", 27.82)
     ride = db.get_rides_range(yesterday, yesterday)[0]
